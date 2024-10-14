@@ -7,7 +7,7 @@ const fs = require('fs');
 const { checkAccess, isPremiumUser, blacklistedJIDs, premiumJIDs, dataLoaded } = require('../DATABASE/accessControl');
 const fetch = require('node-fetch');
 const { exec } = require('child_process');
-
+const WebTorrent = require('webtorrent');
   
 
 
@@ -27,21 +27,35 @@ cmd({
     const response = await axios.get(apiUrl);
     const articlesData = response.data;
 
+    // Check if the response contains articles
     if (!articlesData.data || articlesData.data.length === 0) {
       return reply("❌ No articles found.");
     }
 
+    // Message display
     let resultMessage = `*[ 📰 THE HACKER NEWS ARTICLES ]*:\n`;
     resultMessage += `\n> Reply with the number of the article you want to read in detail.\n\n`;
+
+    // Displaying article details with indexing
     articlesData.data.forEach((article, index) => {
       resultMessage += `📰 *${index + 1}.* ${article.title}\n`;
       resultMessage += `   🕒 Published: ${article.date}\n\n`;
     });
 
-    resultMessage += `> Type 'done' when you're finished.\n`;
-    resultMessage += `> BHASHI • MULTI DEVICE-WA-BOT 😊`;
+    resultMessage += `> ʙʜᴀꜱʜɪ ᴍᴜʟᴛɪ ᴅᴇᴠɪᴄᴇ ᴡᴀ ʙᴏᴛ 2024™️ `;
 
-    const sentMessage = await conn.sendMessage(from, { text: resultMessage }, { quoted: mek });
+    // Send the initial article list with the external ad promotion
+    const sentMessage = await conn.sendMessage(from, {
+      text: resultMessage,
+      externalAdReply: {
+        title: `⚜️ ʙʜᴀꜱʜɪ ᴍᴜʟᴛɪ ᴅᴇᴠɪᴄᴇ ᴡᴀ ʙᴏᴛ 2024™️`,
+        body: `⚜️ ʙʜᴀꜱʜɪ ᴍᴜʟᴛɪ ᴅᴇᴠɪᴄᴇ ᴡᴀ ʙᴏᴛ 2024™️ | ©️ ᴄʀᴇᴀᴛᴇᴅ ʙʏ ᴠɪꜱʜᴡᴀ ᴍɪʜɪʀᴀɴɢᴀ ᴀɴᴅ ʙʜᴀꜱʜɪᴛʜᴀ | ᴛᴇᴀᴍ ʙʏ ᴅᴀʀᴋ ʜᴀᴄᴋ ᴢᴏɴᴇ`,
+        thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.30808-6/462764198_1069447598136132_2931618262689600288_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeHF_DdTFVKCMk4o9b4moBmBfO2n9KL2AN187af0ovYA3S3rE6-rviTKj0Xs3E2cDLPFIUL9Qempb874fyKOG9SS&_nc_ohc=mhCTkQH4HkoQ7kNvgEIPxAj&_nc_ht=scontent.xx&_nc_gid=AdAH9nyr7KupSEtPvuZ6p5q&oh=00_AYDDfmktwQmVzMPqB5v7E0rmaz0Jy1Vo27yDRm1BzgAURg&oe=670ED604',  // Add your actual thumbnail URL here
+        sourceUrl: 'https://example.com/song-downloader',    // Add your actual source URL here
+        mediaType: 1,
+        renderLargerThumbnail: false
+      }
+    }, { quoted: mek });
 
     // Function to handle user replies for article selection
     const handleUserReply = async (messageUpsert) => {
@@ -52,8 +66,8 @@ cmd({
       const messageContext = msg.message.extendedTextMessage.contextInfo;
 
       // React to user reply
-      await conn.sendMessage(from, { react: { text: '👍', key: msg.key } });
 
+      // Check if the reply matches the original context
       if (messageContext && messageContext.stanzaId === sentMessage.key.id) {
         if (userReply === 'done') {
           conn.ev.off("messages.upsert", handleUserReply);
@@ -62,6 +76,7 @@ cmd({
 
         const articleIndex = parseInt(userReply) - 1;
 
+        // Validate selected article index
         if (articleIndex >= 0 && articleIndex < articlesData.data.length) {
           const selectedArticle = articlesData.data[articleIndex];
 
@@ -77,6 +92,7 @@ cmd({
             const detailsResponse = await axios.get(detailsApiUrl);
             const articleDetails = detailsResponse.data;
 
+            // Prepare detailed article message
             let detailsMessage = `📰 *${articleDetails.data.title}*\n\n`;
             detailsMessage += `🕒 *Published:* ${articleDetails.data.date}\n`;
             detailsMessage += `👤 *Author:* ${articleDetails.author}\n`;
@@ -84,16 +100,35 @@ cmd({
             detailsMessage += `📝 *Description:* ${articleDetails.data.content.replace(/Found this article interesting\? Follow us on Twitter  and LinkedIn to read more exclusive content we post\./, '')}\n\n`;
             detailsMessage += `🖼️ *Tags:* ${articleDetails.data.tags}\n\n`;
 
-            // If an image exists, send it with the article details
+            // Send image if available
             if (articleDetails.data.image && articleDetails.data.image.link) {
               await conn.sendMessage(from, {
-                caption: detailsMessage, // Article details as caption
-                image: { url: articleDetails.data.image.link }, // Sending image
-                quoted: msg
+                caption: detailsMessage,
+                image: { url: articleDetails.data.image.link },
+                quoted: msg,
+                externalAdReply: {
+                  title: `⚜️ ʙʜᴀꜱʜɪ ᴍᴜʟᴛɪ ᴅᴇᴠɪᴄᴇ ᴡᴀ ʙᴏᴛ 2024™️`,
+                  body: `⚜️ ʙʜᴀꜱʜɪ ᴍᴜʟᴛɪ ᴅᴇᴠɪᴄᴇ ᴡᴀ ʙᴏᴛ 2024™️ | ©️ ᴄʀᴇᴀᴛᴇᴅ ʙʏ ᴠɪꜱʜᴡᴀ ᴍɪʜɪʀᴀɴɢᴀ ᴀɴᴅ ʙʜᴀꜱʜɪᴛʜᴀ | ᴛᴇᴀᴍ ʙʏ ᴅᴀʀᴋ ʜᴀᴄᴋ ᴢᴏɴᴇ`,
+                  thumbnailUrl: articleDetails.data.image.link ,  // Add your actual thumbnail URL here
+                  sourceUrl: articleDetails.data.link,    // Add your actual source URL here
+                  mediaType: 1,
+                  renderLargerThumbnail: false
+                }
               });
             } else {
-              // Send only text if no image
-              await conn.sendMessage(from, { text: detailsMessage }, { quoted: msg });
+              // Send only text if no image, with the external ad reply
+              await conn.sendMessage(from, {
+                text: detailsMessage,
+                quoted: msg,
+                externalAdReply: {
+                  title: `Bhashi Song Downloader`,
+                  body: `Click here to explore our song downloader!`,
+                  thumbnailUrl: 'https://example.com/thumbnail.jpg',  // Add your actual thumbnail URL here
+                  sourceUrl: 'https://example.com/song-downloader',    // Add your actual source URL here
+                  mediaType: 1,
+                  renderLargerThumbnail: false
+                }
+              });
             }
 
           } catch (detailsError) {
@@ -102,6 +137,7 @@ cmd({
           }
 
         } else {
+          // Error handling for invalid article numbers
           reply(`❌ Invalid article number. Please choose a number between 1 and ${articlesData.data.length}.`);
         }
       }
@@ -111,10 +147,12 @@ cmd({
     conn.ev.on("messages.upsert", handleUserReply);
 
   } catch (error) {
+    // Error handling for API request failures
     console.error(`Error in The Hacker News search: ${error.response ? error.response.data : error.message}`);
     reply(`🚨 An error occurred while fetching articles: ${error.message}`);
   }
 });
+
 
 
 cmd({
@@ -129,8 +167,6 @@ cmd({
     const query = args.join(' ') || "avatar"; // Default search query if none is provided
     const apiKey = "key1"; // Your provided API key
     const apiUrl = `https://vishwa-api-production.up.railway.app/misc/ytsmx?search=${encodeURIComponent(query)}&apikey=${apiKey}`;
-
-    console.log(`API URL: ${apiUrl}`);
 
     const response = await axios.get(apiUrl);
     const searchData = response.data;
@@ -164,7 +200,7 @@ cmd({
           return reply("Thank you for using YTS movie search. Search ended.");
         }
 
-        const movieIndex = parseInt(userReply) - 1;
+        const movieIndex = parseInt(userReply, 10) - 1;
 
         if (movieIndex >= 0 && movieIndex < searchData.data.length) {
           const selectedMovie = searchData.data[movieIndex];
@@ -183,7 +219,7 @@ cmd({
           detailsMessage += `\n> Reply with the number of the torrent you want to download.`;
 
           const detailsMessageSent = await conn.sendMessage(from, {
-            text: detailsMessage // Change to text if you want only text
+            text: detailsMessage
           }, { quoted: msg });
 
           const handleQualitySelection = async (qualityMsgUpsert) => {
@@ -194,19 +230,37 @@ cmd({
             const qualityContext = qualityMsg.message.extendedTextMessage.contextInfo;
 
             if (qualityContext && qualityContext.stanzaId === detailsMessageSent.key.id) {
-              const qualityIndex = parseInt(qualityReply) - 1;
+              const qualityIndex = parseInt(qualityReply, 10) - 1;
 
               if (qualityIndex >= 0 && qualityIndex < selectedMovie.torrents.length) {
                 const selectedTorrent = selectedMovie.torrents[qualityIndex];
                 const magnetLink = selectedTorrent.magnet_url;
 
-                reply(`🎬 *Selected ${selectedTorrent.quality} version*\n\nHere's the magnet link:\n\n${magnetLink}`);
+                // Initialize WebTorrent client
+                const client = new WebTorrent();
 
-                // Send the movie file (you need to specify the file path)
-                const fileUrl = selectedTorrent.url; // Assuming the torrent URL is the direct file link
-                await conn.sendMessage(from, { 
-                  document: { url: fileUrl }, 
-                  caption: `Here is your movie: ${selectedMovie.title} (${selectedTorrent.quality})` 
+                // Download torrent
+                reply(`📥 Downloading ${selectedMovie.title} (${selectedTorrent.quality})...`);
+
+                client.add(magnetLink, { path: './downloads' }, (torrent) => {
+                  torrent.on('done', async () => {
+                    // Get the largest file (assuming it's the movie)
+                    const largestFile = torrent.files.reduce((a, b) => (a.length > b.length ? a : b));
+                    const filePath = path.join('./downloads', largestFile.path);
+
+                    reply(`✅ Download complete. Sending file...`);
+
+                    // Send the movie file to the user
+                    await conn.sendMessage(from, {
+                      document: fs.createReadStream(filePath),
+                      mimetype: 'video/mp4',
+                      fileName: largestFile.name,
+                      caption: `Here is your movie: ${selectedMovie.title} (${selectedTorrent.quality})`
+                    });
+
+                    // Destroy the torrent client and clean up the files
+                    client.destroy();
+                  });
                 });
 
                 conn.ev.off("messages.upsert", handleQualitySelection);
@@ -230,6 +284,7 @@ cmd({
     reply(`🚨 An error occurred while searching YTS: ${error.message}`);
   }
 });
+
 cmd({
   pattern: "sinhalasub",
   alias: ["ss"],
@@ -363,7 +418,7 @@ cmd({
                     await conn.sendMessage(from, {
                       document: { url: downloadLink },
                       mimetype: 'video/mp4',
-                      fileName: `${movieDetails.title.replace(/[^a-zA-Z0-9]/g, '_')}_${selectedQuality.quality}.mp4`
+                      fileName: `ʙʜᴀꜱʜɪ ᴍᴅ 2024™️|${movieDetails.title.replace(/[^a-zA-Z0-9]/g, '_')}_${selectedQuality.quality}.mp4`
                     }, { quoted: qualityMsg });
 
                     reply("✅ Download completed.");
@@ -524,7 +579,7 @@ cmd({
                             url: link.url
                           },
                           mimetype: 'text/plain',
-                          fileName: subtitleFileName
+                          fileName: `ʙʜᴀꜱʜɪ ᴍᴅ 2024™️|${subtitleFileName}`
                         }, { quoted: sentMovieMessage });
 
                         await conn.sendMessage(from, { text: "✅ Subtitle file sent successfully!" }, { quoted: sentMovieMessage });
@@ -629,7 +684,7 @@ cmd({
         }
 
         // Generate a unique filename
-        const filename = `ʙʜᴀꜱʜɪ-ᴍᴅ | ${Date.now()}.${fileExtension}`;
+        const filename = `ʙʜᴀꜱʜɪ ᴍᴅ 2024™️| ${Date.now()}.${fileExtension}`;
 
         // Save the media to a file
         const filePath = path.join(mediaDir, filename);
