@@ -8,9 +8,110 @@ const { checkAccess, isPremiumUser, blacklistedJIDs, premiumJIDs, dataLoaded } =
 const fetch = require('node-fetch');
 const { exec } = require('child_process');
 const WebTorrent = require('webtorrent');
-  
 
 
+
+
+// Define the pastpapers command
+// Define the pastpapers command
+cmd({
+    pattern: "pastpapers",
+    alias: ["ppsearch"],
+    desc: "Search and download past papers with beautiful formatting",
+    react: "📄",
+    category: "search",
+    filename: __filename
+}, async (conn, mek, m, { from, reply, args }) => {
+    try {
+        // Validate input
+        if (!args.length) {
+            return reply("❗ Please provide a search query for past papers. Example: `.pastpapers Grade 06 1st term 2021`");
+        }
+
+        const query = args.join(' ');
+        const apiKey = "key1"; // Replace with your actual API key
+        const searchUrl = `https://vishwa-api-production.up.railway.app/misc/pastpapers-search?q=${encodeURIComponent(query)}&apikey=${apiKey}`;
+
+        // Fetch past papers based on search query
+        const { data } = await axios.get(searchUrl);
+        if (data.status !== "success" || !data.results.length) {
+            return reply("❌ No past papers found for your query.");
+        }
+
+        // Build a message with search results
+        let message = `📝 *Past Papers for your search:*\n\n🔍 _Query:_ ${data.query}\n\n`;
+        data.results.forEach((result, index) => {
+            message += `📄 *${index + 1}. ${result.title}*\n🌐 *Link:* ${result.link}\n\n`;
+        });
+        message += "👇 _Reply with the number to download the paper or type 'done' to finish._";
+
+        // Send the message to the user
+        const sentMessage = await conn.sendMessage(from, { text: message }, { quoted: mek });
+
+        // Handle user replies
+        const handleUserReply = async (messageUpdate) => {
+            const msg = messageUpdate.messages[0];
+            if (!msg.message || !msg.message.extendedTextMessage) return;
+
+            const userReply = msg.message.extendedTextMessage.text.trim().toLowerCase();
+            const messageContext = msg.message.extendedTextMessage.contextInfo;
+
+            // Check if the reply is to the sent message
+            if (messageContext && messageContext.stanzaId === sentMessage.key.id) {
+                if (userReply === 'done') {
+                    conn.ev.off("messages.upsert", handleUserReply);
+                    return reply("Thank you for using the Past Paper Downloader. Search ended.");
+                }
+
+                const selectedNumber = parseInt(userReply, 10);
+                // Validate the number reply
+                if (isNaN(selectedNumber) || selectedNumber < 1 || selectedNumber > data.results.length) {
+                    return reply("❗ Invalid selection. Please reply with a valid number.");
+                }
+
+                // Fetch the selected paper's download link
+                const selectedPaper = data.results[selectedNumber - 1];
+                const paperUrl = `https://vishwa-api-production.up.railway.app/misc/pastpapers-download?url=${encodeURIComponent(selectedPaper.link)}&apikey=${apiKey}`;
+                const { data: paperData } = await axios.get(paperUrl);
+
+                if (paperData.status !== "success") {
+                    return reply("❌ Unable to fetch the download link for the selected paper.");
+                }
+
+                // Download the file from the provided URL
+                const downloadUrl = paperData.data.downloadLinks[0].href;
+                const response = await axios({
+                    method: 'GET',
+                    url: downloadUrl,
+                    responseType: 'arraybuffer' // Use arraybuffer to get the binary data
+                });
+
+                // Prepare the caption with more details
+                const caption = `📄 *${paperData.data.title}*\n` +
+                                `🔍 _Query:_ ${data.query}\n` +
+                                `🗓️ _Publication Year:_ ${paperData.data.date || 'N/A'}\n` + // Add the publication year if available
+                                `📚 _Categories:_ ${paperData.data.categories || 'N/A'}`; // Add the subject if available
+
+                // Send the document as a buffer
+                await conn.sendMessage(from, {
+                    document: { url: downloadUrl }, // URL for external reference
+                    mimetype: 'application/pdf',
+                    fileName: `${paperData.data.title}.pdf`, // Use the paper title for the filename
+                    caption: caption // Use the detailed caption
+                });
+
+                // Optional: If you want to end the session after one download, uncomment the line below
+                // conn.ev.off("messages.upsert", handleUserReply);
+            }
+        };
+
+        // Listen for user replies
+        conn.ev.on("messages.upsert", handleUserReply);
+    } catch (error) {
+        console.error(error);
+        reply("❌ Error fetching the past papers. Please try again later.");
+    }
+});
 
 cmd({
   pattern: "hackernews",
@@ -152,8 +253,6 @@ cmd({
     reply(`🚨 An error occurred while fetching articles: ${error.message}`);
   }
 });
-
-
 
 cmd({
   pattern: "ytsmovie",
