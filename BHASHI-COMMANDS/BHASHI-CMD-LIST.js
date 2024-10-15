@@ -8,7 +8,7 @@
  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝    ╚═╝     ╚═╝╚═════╝       ╚══════╝ ╚═════╝ ╚══════╝     ╚═╝ 
                                                                    
     Project Name : Bhashi Multi Device Whatsapp Bot
-    Version : 1.0
+    Version : 1.0 
     Year : 2024
     Author : Vishwa Mihiranga & Bhashitha
     This File Last Update Date : 2024.09.27
